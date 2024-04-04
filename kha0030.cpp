@@ -1,5 +1,7 @@
 #include <vector>
 #include <random>
+#include <algorithm>
+#include <chrono>
 #include <iostream>
 
 std::vector<int> generateRandomVector(int length, int minVal, int maxVal)
@@ -51,7 +53,7 @@ void RightToLeft(std::vector<int> &targetToSort, unsigned int &left, unsigned in
     left = j;
 }
 
-std::vector<int> shakerSort(std::vector<int> targetToSort)
+void shakerSort(std::vector<int> &targetToSort)
 {
     unsigned int left = 0;
     unsigned int right = targetToSort.size() - 1;
@@ -60,20 +62,37 @@ std::vector<int> shakerSort(std::vector<int> targetToSort)
         LeftToRight(targetToSort, left, right);
         RightToLeft(targetToSort, left, right);
     }
-    return targetToSort;
 }
 
 int main()
 {
-    std::vector<int> array = generateRandomVector(9, 3, 7);
-    for (int item : array)
-    {
-        std::cout << item << ' ';
-    }
-    std::cout << '\n';
-    array = shakerSort(array);
-    for (int item : array)
-    {
-        std::cout << item << ' ';
-    }
+    std::vector<int> smallVectorStorage = generateRandomVector(9, 3, 7);
+    std::vector<int> bigVectorStorage = generateRandomVector(5000, 3, 387);
+    std::vector<int> randomVector = smallVectorStorage;
+    auto start = std ::chrono ::high_resolution_clock ::now();
+    std ::sort(randomVector.begin(), randomVector.end());
+    auto end = std ::chrono ::high_resolution_clock ::now();
+    std ::chrono ::duration<double> duration = end - start;
+    std ::cout << " Time taken to sort small vector using std::sort: " << duration.count() << " seconds " << std ::endl;
+
+    randomVector = bigVectorStorage;
+    start = std ::chrono ::high_resolution_clock ::now();
+    std ::sort(randomVector.begin(), randomVector.end());
+    end = std ::chrono ::high_resolution_clock ::now();
+    duration = end - start;
+    std ::cout << " Time taken to sort big vector using std::sort: " << duration.count() << " seconds " << std ::endl;
+
+    randomVector = smallVectorStorage;
+    start = std ::chrono ::high_resolution_clock ::now();
+    shakerSort(randomVector);
+    end = std ::chrono ::high_resolution_clock ::now();
+    duration = end - start;
+    std ::cout << " Time taken to sort small vector using shakerSort: " << duration.count() << " seconds " << std ::endl;
+
+    randomVector = bigVectorStorage;
+    start = std ::chrono ::high_resolution_clock ::now();
+    shakerSort(randomVector);
+    end = std ::chrono ::high_resolution_clock ::now();
+    duration = end - start;
+    std ::cout << " Time taken to sort big vector using shakerSort: " << duration.count() << " seconds " << std ::endl;
 }
