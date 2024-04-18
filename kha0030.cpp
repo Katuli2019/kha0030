@@ -1,98 +1,104 @@
-#include <vector>
-#include <random>
-#include <algorithm>
-#include <chrono>
 #include <iostream>
+#include <vector>
+#include <stack>
+#include <unordered_set>
 
-std::vector<int> generateRandomVector(int length, int minVal, int maxVal)
+using namespace std;
+
+const int SIZE = 3;
+const int GOAL[SIZE][SIZE] = {{1, 2, 3}, {4, 5, 6}, {7, 8, 0}};
+
+struct State
 {
-    std ::random_device rd;
-    std ::mt19937 gen(rd());
-    std ::uniform_int_distribution<int> distribution(minVal, maxVal);
-    std ::vector<int> result;
-    result.reserve(length); // better then series of push_backs
-    for (int i = 0; i < length; ++i)
+    int board[SIZE][SIZE];
+    int emptyRow, emptyCol;
+};
+
+bool DFS(State initialState)
+{
+    stack<State> stack;
+    unordered_set<string> visited;
+
+    int emptyRow, emptyCol;
+    for (emptyRow = 0; emptyRow < SIZE; ++emptyRow)
     {
-        result.push_back(distribution(gen));
-    }
-    return result;
-}
-
-void Swap(int &first, int &second)
-{
-    int temp = first;
-    first = second;
-    second = temp;
-}
-
-void LeftToRight(std::vector<int> &targetToSort, unsigned int &left, unsigned int &right)
-{
-    unsigned int j = 0;
-    for (int i = left; i <= right - 1; i++)
-    {
-        if (targetToSort[i] > targetToSort[i + 1])
+        for (emptyCol = 0; emptyCol < SIZE; ++emptyCol)
         {
-            Swap(targetToSort[i], targetToSort[i + 1]);
-            j = i;
+            if (initialState.board[emptyRow][emptyCol] == 0)
+                goto found;
         }
     }
-    right = j;
-}
+found:
+    initialState.emptyRow = emptyRow;
+    initialState.emptyCol = emptyCol;
 
-void RightToLeft(std::vector<int> &targetToSort, unsigned int &left, unsigned int &right)
-{
-    unsigned int j = 0;
-    for (int i = right; i >= left + 1; i--)
+    stack.push(initialState);
+
+    while (!stack.empty())
     {
-        if (targetToSort[i - 1] > targetToSort[i])
+        State currentState = stack.top();
+        stack.pop();
+
+        for (int i = 0; i < SIZE; ++i)
         {
-            Swap(targetToSort[i - 1], targetToSort[i]);
-            j = i;
+            for (int j = 0; j < SIZE; ++j)
+            {
+                if (currentState.board[i][j] != GOAL[i][j])
+                    goto notGoalState;
+            }
+        }
+        return true;
+    notGoalState:
+
+        string currentStateString = "";
+        for (int i = 0; i < SIZE; ++i)
+        {
+            for (int j = 0; j < SIZE; ++j)
+            {
+                currentStateString += to_string(currentState.board[i][j]);
+            }
+        }
+
+        if (visited.find(currentStateString) != visited.end())
+        {
+            continue;
+        }
+        visited.insert(currentStateString);
+
+        int moves[][2] = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}};
+        for (auto move : moves)
+        {
+            int newRow = currentState.emptyRow + move[0];
+            int newCol = currentState.emptyCol + move[1];
+
+            if (newRow >= 0 && newRow < SIZE && newCol >= 0 && newCol < SIZE)
+            {
+                State nextState = currentState;
+                nextState.emptyRow = newRow;
+                nextState.emptyCol = newCol;
+                swap(nextState.board[currentState.emptyRow][currentState.emptyCol], nextState.board[newRow][newCol]);
+                stack.push(nextState);
+            }
         }
     }
-    left = j;
-}
 
-void shakerSort(std::vector<int> &targetToSort)
-{
-    unsigned int left = 0;
-    unsigned int right = targetToSort.size() - 1;
-    while (left < right)
-    {
-        LeftToRight(targetToSort, left, right);
-        RightToLeft(targetToSort, left, right);
-    }
+    return false;
 }
 
 int main()
 {
-    std::vector<int> smallVectorStorage = generateRandomVector(9, 3, 7);
-    std::vector<int> bigVectorStorage = generateRandomVector(5000, 3, 387);
-    std::vector<int> randomVector = smallVectorStorage;
-    auto start = std ::chrono ::high_resolution_clock ::now();
-    std ::sort(randomVector.begin(), randomVector.end());
-    auto end = std ::chrono ::high_resolution_clock ::now();
-    std ::chrono ::duration<double> duration = end - start;
-    std ::cout << " Time taken to sort small vector using std::sort: " << duration.count() << " seconds " << std ::endl;
+    State initialState = {{{1, 2, 3},
+                           {4, 5, 6},
+                           {0, 7, 8}}};
 
-    randomVector = bigVectorStorage;
-    start = std ::chrono ::high_resolution_clock ::now();
-    std ::sort(randomVector.begin(), randomVector.end());
-    end = std ::chrono ::high_resolution_clock ::now();
-    duration = end - start;
-    std ::cout << " Time taken to sort big vector using std::sort: " << duration.count() << " seconds " << std ::endl;
+    if (DFS(initialState))
+    {
+        cout << "Lze";
+    }
+    else
+    {
+        cout << "Nelze";
+    }
 
-    randomVector = smallVectorStorage;
-    start = std ::chrono ::high_resolution_clock ::now();
-    shakerSort(randomVector);
-    end = std ::chrono ::high_resolution_clock ::now();
-    duration = end - start;
-    std ::cout << " Time taken to sort small vector using shakerSort: " << duration.count() << " seconds " << std ::endl;
-
-    randomVector = bigVectorStorage;
-    start = std ::chrono ::high_resolution_clock ::now();
-    shakerSort(randomVector);
-    end = std ::chrono ::high_resolution_clock ::now();
-    duration = end - start;
-    std ::cout << " Time taken to sort big vector using shakerSort: " << duration.count() << " seconds " << std ::endl;
+    return 0;
 }
