@@ -1,104 +1,147 @@
 #include <iostream>
+#include <algorithm>
+#include <chrono>
 #include <vector>
-#include <stack>
-#include <unordered_set>
-
 using namespace std;
 
-const int SIZE = 3;
-const int GOAL[SIZE][SIZE] = {{1, 2, 3}, {4, 5, 6}, {7, 8, 0}};
-
-struct State
+int Factorial(int number)
 {
-    int board[SIZE][SIZE];
-    int emptyRow, emptyCol;
-};
-
-bool DFS(State initialState)
-{
-    stack<State> stack;
-    unordered_set<string> visited;
-
-    int emptyRow, emptyCol;
-    for (emptyRow = 0; emptyRow < SIZE; ++emptyRow)
+    int returnValue = number;
+    for (int i = number - 1; i > 1; i--)
     {
-        for (emptyCol = 0; emptyCol < SIZE; ++emptyCol)
-        {
-            if (initialState.board[emptyRow][emptyCol] == 0)
-                goto found;
-        }
+        returnValue *= i;
     }
-found:
-    initialState.emptyRow = emptyRow;
-    initialState.emptyCol = emptyCol;
+    return returnValue;
+}
 
-    stack.push(initialState);
-
-    while (!stack.empty())
+void InitializeVariables(int **&permutations, short *&arrows, int n)
+{
+    int permutations_count = Factorial(n);
+    permutations = new int *[permutations_count];
+    for (int i = 0; i < permutations_count; i++)
     {
-        State currentState = stack.top();
-        stack.pop();
+        permutations[i] = new int[n];
+    }
 
-        for (int i = 0; i < SIZE; ++i)
-        {
-            for (int j = 0; j < SIZE; ++j)
-            {
-                if (currentState.board[i][j] != GOAL[i][j])
-                    goto notGoalState;
-            }
-        }
-        return true;
-    notGoalState:
+    arrows = new short[n];
+    for (int i = 0; i < n; i++)
+    {
+        arrows[i] = -1;
+        permutations[0][i] = i + 1;
+    }
+}
 
-        string currentStateString = "";
-        for (int i = 0; i < SIZE; ++i)
-        {
-            for (int j = 0; j < SIZE; ++j)
-            {
-                currentStateString += to_string(currentState.board[i][j]);
-            }
-        }
+int SeekTargetToSwap(int *&permutations, short *&arrows, int n)
+{
+    int largest_number = 0;
+    int index_of_largest_number = -1;
 
-        if (visited.find(currentStateString) != visited.end())
+    for (int i = 0; i < n; i++)
+    {
+        if (i + arrows[i] == n || i + arrows[i] < 0)
         {
             continue;
         }
-        visited.insert(currentStateString);
 
-        int moves[][2] = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}};
-        for (auto move : moves)
+        if (permutations[i] > permutations[i + arrows[i]] && permutations[i] > largest_number)
         {
-            int newRow = currentState.emptyRow + move[0];
-            int newCol = currentState.emptyCol + move[1];
-
-            if (newRow >= 0 && newRow < SIZE && newCol >= 0 && newCol < SIZE)
-            {
-                State nextState = currentState;
-                nextState.emptyRow = newRow;
-                nextState.emptyCol = newCol;
-                swap(nextState.board[currentState.emptyRow][currentState.emptyCol], nextState.board[newRow][newCol]);
-                stack.push(nextState);
-            }
+            largest_number = permutations[i];
+            index_of_largest_number = i;
         }
     }
 
-    return false;
+    for (int i = 0; i < n; i++)
+    {
+        if (permutations[i] > largest_number)
+        {
+            arrows[i] = -arrows[i];
+        }
+    }
+
+    return index_of_largest_number;
+}
+
+void Swap(int *&permutations, short *&arrows, int target_index)
+{
+    int temp = permutations[target_index];
+    permutations[target_index] = permutations[target_index + arrows[target_index]];
+    permutations[target_index + arrows[target_index]] = temp;
+
+    short tempShort = arrows[target_index + arrows[target_index]];
+    arrows[target_index + arrows[target_index]] = arrows[target_index];
+    arrows[target_index] = tempShort;
+}
+
+int **GeneratePermutations(int n)
+{
+    int **permutations;
+    short *arrows;
+    InitializeVariables(permutations, arrows, n);
+
+    int index_of_last_permutation = 0;
+    int index_of_largest_number = -1;
+
+    while (true)
+    {
+        index_of_largest_number = SeekTargetToSwap(permutations[index_of_last_permutation], arrows, n);
+
+        if (index_of_largest_number == -1)
+        {
+            return permutations;
+        }
+
+        index_of_last_permutation++;
+        for (int i = 0; i < n; i++)
+        {
+            permutations[index_of_last_permutation][i] = permutations[index_of_last_permutation - 1][i];
+        }
+
+        Swap(permutations[index_of_last_permutation], arrows, index_of_largest_number);
+    }
+}
+
+void PrintPermutations(int **&permutations, int n)
+{
+    int totalPermutations = Factorial(n);
+    for (int i = 0; i < totalPermutations; i++)
+    {
+        for (int j = 0; j < n; j++)
+        {
+            cout << permutations[i][j] << ' ';
+        }
+        cout << endl;
+    }
 }
 
 int main()
 {
-    State initialState = {{{1, 2, 3},
-                           {4, 5, 6},
-                           {0, 7, 8}}};
+    auto start = chrono::high_resolution_clock::now();
+    GeneratePermutations(5);
+    auto end = chrono::high_resolution_clock::now();
+    chrono::duration<double> duration = end - start;
+    cout << "Time taken to generate permutations (n = 5): " << duration.count() << " seconds" << std::endl;
 
-    if (DFS(initialState))
+    vector<int> numbers = {1, 2, 3, 4, 5};
+    start = chrono::high_resolution_clock::now();
+    while (next_permutation(numbers.begin(), numbers.end()))
     {
-        cout << "Lze";
     }
-    else
-    {
-        cout << "Nelze";
-    }
+    end = chrono::high_resolution_clock::now();
+    duration = end - start;
+    cout << "Time taken to generate permutations (next_permutation (n = 5)): " << duration.count() << " seconds" << std::endl;
 
-    return 0;
+    start = chrono::high_resolution_clock::now();
+    GeneratePermutations(10);
+    end = chrono::high_resolution_clock::now();
+    duration = end - start;
+    cout << "Time taken to generate permutations (n = 10): " << duration.count() << " seconds" << std::endl;
+
+    numbers = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+    start = chrono::high_resolution_clock::now();
+    while (next_permutation(numbers.begin(), numbers.end()))
+    {
+    }
+    end = chrono::high_resolution_clock::now();
+    duration = end - start;
+    cout << "Time taken to generate permutations (next_permutation (n = 10)): " << duration.count() << " seconds" << std::endl;
 }
